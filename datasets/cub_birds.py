@@ -31,8 +31,7 @@ def get_cub_birds(*, augment=True, resize=None, **kwargs):
 
     train = CubBirds(dir_path, Compose(train_transforms), split="train")
     val = CubBirds(dir_path, Compose(val_transforms), split="val")
-    # test = CubBirds(dir_path, Compose(basic_transforms), split="test")
-    test = []
+    test = CubBirds(dir_path, Compose(basic_transforms), split="test")
     return train, val, test
 
 
@@ -46,18 +45,22 @@ class CubBirds(Dataset):
         is_train = np.loadtxt(os.path.join(data_dir, "train_test_split.txt"), dtype=int)[:, 1]
         if split is "train":
             idxs = is_train == 1
+            self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1]
+            self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1]
         elif split is "val":
             idxs = is_train == 0
+            self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1][0::2]
+            self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1][0::2]
+        elif split is "test":
+            idxs = is_train == 0
+            self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1][1::2]
+            self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1][1::2]
         else:
             raise RuntimeError("wrong split")
-
-        self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1]
-        self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1]
 
     def __getitem__(self, idx):
         label = self.labels[idx]
         path = self.paths[idx]
-        # label = LongTensor(label).item()
         img = Image.open(os.path.join(self.data_dir, "images", path)).convert("RGB")
         if self.transforms:
             img = self.transforms(img)
