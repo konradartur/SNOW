@@ -2,18 +2,19 @@
 http://www.vision.caltech.edu/visipedia/CUB-200-2011.html
 """
 import numpy as np
-from torch import LongTensor
 import os
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomHorizontalFlip, RandomResizedCrop
 from torch.utils.data import Dataset
 from PIL import Image
+
+from datasets.utils import print_dataset_mean_std
 
 
 def get_cub_birds(*, augment=True, resize=None, **kwargs):
     mean = [0.48592031, 0.49923815, 0.43139376]
     std = [0.05136569, 0.04910943, 0.06800005]
 
-    dir_path = os.path.join(os.environ["DATA_DIR"], "cub_birds")  # TODO: custom directory
+    dir_path = os.path.join("data", "birds")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
     # if we augment and resize we would like to put in train_transforms RandomResizedCrop, not just Resize
@@ -30,9 +31,9 @@ def get_cub_birds(*, augment=True, resize=None, **kwargs):
         val_transforms = basic_transforms
 
     train = CubBirds(dir_path, Compose(train_transforms), split="train")
-    val = CubBirds(dir_path, Compose(val_transforms), split="val")
+    # val = CubBirds(dir_path, Compose(val_transforms), split="val")
     test = CubBirds(dir_path, Compose(basic_transforms), split="test")
-    return train, val, test
+    return train, test
 
 
 class CubBirds(Dataset):
@@ -70,13 +71,6 @@ class CubBirds(Dataset):
         return len(self.labels)
 
 
-# mean = [0.48592031, 0.49923815, 0.43139376]
-# std = [0.05136569, 0.04910943, 0.06800005]
-# dir_path = os.path.join(os.environ["DATA_DIR"], "cub_birds")
-#
-# basic_transforms = [ToTensor(), Normalize(mean, std)]
-#
-# ds = CubBirds(dir_path, Compose(basic_transforms), split="train")
-#
-# for i, (x, y) in enumerate(ds):
-#     print(i, "\t", x.shape, "\t", y)
+if __name__ == '__main__':
+    ds = get_cub_birds()[0]
+    print_dataset_mean_std(ds)
