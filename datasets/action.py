@@ -4,14 +4,14 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 
-from datasets import print_dataset_mean_std
+from datasets.utils import print_dataset_mean_std
 
 
 def get_action(*, resize=None, **kwargs):
     mean = [0.4670, 0.4409, 0.4021]
     std = [0.2465, 0.2389, 0.2429]
 
-    dir_path = os.path.join("data", "action")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "action")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
