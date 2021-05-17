@@ -59,10 +59,16 @@ class CubBirds(Dataset):
         else:
             raise RuntimeError("wrong split")
 
-    def __getitem__(self, idx):
-        label = self.labels[idx]
+        self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
+
+    def __loadimg__(self, idx):
         path = self.paths[idx]
         img = Image.open(os.path.join(self.data_dir, "images", path)).convert("RGB")
+        return img
+
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        img = self.data[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label
