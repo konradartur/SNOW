@@ -1,7 +1,11 @@
 import os
 import time
+from itertools import product
 
+import matplotlib.pyplot as plt
+import pandas as pd
 import torch
+import yaml
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import DataLoader
@@ -51,5 +55,5 @@ class FinetuneResnet:
         f.write(str(end_time - start_time))
         f.close()
 
-    def report(self, config):
+    def report(self):
         pass
