@@ -15,54 +15,23 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
+class ChannelPool(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ChannelPool, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.params = torch.rand(in_channels, requires_grad=True)
+
+    def forward(self, input):
+        vals, indices = torch.topk(self.params + torch.rand(self.in_channels), self.out_channels)
+        # print(type(input))
+        batch_size, num_channels, width, height = input.shape
+        result = vals * input[:, indices, :, :].view(batch_size, width, height, self.out_channels)
+        return result.view(batch_size, self.out_channels, width, height)
+
 
 class BasicBlock(nn.Module):
-    expansion: int = 1
-
-    def __init__(
-        self,
-        inplanes: int,
-        planes: int,
-        stride: int = 1,
-        downsample: Optional[nn.Module] = None,
-        groups: int = 1,
-        base_width: int = 64,
-        dilation: int = 1,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
-    ) -> None:
-        super(BasicBlock, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
-        if groups != 1 or base_width != 64:
-            raise ValueError('BasicBlock only supports groups=1 and base_width=64')
-        if dilation > 1:
-            raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
-        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = norm_layer(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = norm_layer(planes)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x: Tensor) -> Tensor:
-        identity = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out += identity
-        out = self.relu(out)
-
-        return out
+    pass
 
 
 class Bottleneck(nn.Module):
@@ -78,6 +47,8 @@ class Bottleneck(nn.Module):
         self,
         inplanes: int,
         planes: int,
+        K: int,
+        M: int,
         stride: int = 1,
         downsample: Optional[nn.Module] = None,
         groups: int = 1,
@@ -90,32 +61,50 @@ class Bottleneck(nn.Module):
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv1x1(inplanes, width)
-        self.bn1 = norm_layer(width)
-        self.conv2 = conv3x3(width, width, stride, groups, dilation)
-        self.bn2 = norm_layer(width)
-        self.conv3 = conv1x1(width, planes * self.expansion)
-        self.bn3 = norm_layer(planes * self.expansion)
+        self.conv1 = conv1x1(inplanes + M, width)
+        self.conv1_chp = ChannelPool(inplanes, M)
+        self.bn1 = norm_layer(width + M)
+        self.conv2 = conv3x3(width + M, width, stride, groups, dilation)
+        self.conv2_chp = ChannelPool(width, M)
+        self.bn2 = norm_layer(width + M)
+        self.conv3 = conv1x1(width + M, planes * self.expansion)
+        self.conv3_chp = ChannelPool(width, M)
+        self.bn3 = norm_layer(planes * self.expansion + M)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
+        self.downsample_chp = ChannelPool(planes * self.expansion, M)
         self.stride = stride
 
-    def forward(self, x: Tensor) -> Tensor:
+    def _apply_chp(self, chp, t, x):
+        return torch.cat((chp(t), x), dim=1)
+
+    def forward(self, x: Tensor, feature_map: Dict) -> Tensor:
         identity = x
 
         out = self.conv1(x)
+        t = feature_map["conv1"]
+        out = self._apply_chp(self.conv1_chp, t, out)
+
         out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
+        t = feature_map["conv2"]
+        out = self._apply_chp(self.conv2_chp, t, out)
+
         out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
+        t = feature_map["conv3"]
+        out = self._apply_chp(self.conv3_chp, t, out)
+
         out = self.bn3(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
+            t = feature_map["downsample"]
+            identity = self._apply_chp(self.downsample_chp, t, identity)
 
         out += identity
         out = self.relu(out)
@@ -127,7 +116,8 @@ class ResNet(nn.Module):
 
     def __init__(
         self,
-        scale: int,
+        K: int,
+        M: int,
         block: Type[Union[BasicBlock, Bottleneck]],
         layers: List[int],
         num_classes: int = 1000,
@@ -155,18 +145,20 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.bn1 = norm_layer(self.inplanes)
+        self.conv1_chp = ChannelPool(self.inplanes, M)
+        self.bn1 = norm_layer(self.inplanes + M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64//scale, layers[0])
-        self.layer2 = self._make_layer(block, 128//scale, layers[1], stride=2,
+        self.layer1 = self._make_layer(block, 64, layers[0], K, M)
+        self.layer2 = self._make_layer(block, 128, layers[1], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256//scale, layers[2], stride=2,
+        self.layer3 = self._make_layer(block, 256, layers[2], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, 512//scale, layers[3], stride=2,
+        self.layer4 = self._make_layer(block, 512, layers[3], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[2])
+        self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512//scale * block.expansion, num_classes)
+        self.fc = nn.Linear(512//K * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -185,7 +177,7 @@ class ResNet(nn.Module):
                 elif isinstance(m, BasicBlock):
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
-    def _make_layer(self, block: Type[Union[BasicBlock, Bottleneck]], planes: int, blocks: int,
+    def _make_layer(self, block: Type[Union[BasicBlock, Bottleneck]], planes: int, blocks: int, K: int, M: int,
                     stride: int = 1, dilate: bool = False) -> nn.Sequential:
         norm_layer = self._norm_layer
         downsample = None
@@ -195,32 +187,41 @@ class ResNet(nn.Module):
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * block.expansion, stride),
+                conv1x1(self.inplanes + M, planes * block.expansion, stride),
                 norm_layer(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
+        layers.append(block(self.inplanes, planes, K, M, stride, downsample, self.groups,
                             self.base_width, previous_dilation, norm_layer))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
+            layers.append(block(self.inplanes, planes, K, M, groups=self.groups,
                                 base_width=self.base_width, dilation=self.dilation,
                                 norm_layer=norm_layer))
 
-        return nn.Sequential(*layers)
+        return layers
+    
+    def _apply_chp(self, chp, t, x):
+        return torch.cat((chp(t), x), dim=1)
 
-    def _forward_impl(self, x: Tensor, t: Dict) -> Tensor:
+    def _forward_impl(self, x: Tensor, feature_map: Dict) -> Tensor:
         # See note [TorchScript super()]
         x = self.conv1(x)
+        t = feature_map["conv1"]
+        x = self._apply_chp(self.conv1_chp, t, x)
+
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        # for block in 
+        for idx, layer in enumerate(self.layers):
+            layer_name = "layer{}_inner".format(idx+1)
+            for idy, block in enumerate(layer):
+                block_name = "{}_inner".format(idy)
+                print(layer_name, block_name)
+                x = block(x, feature_map[layer_name][block_name])
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
@@ -228,22 +229,23 @@ class ResNet(nn.Module):
 
         return x
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+    def forward(self, x: Tensor, feature_map: Dict) -> Tensor:
+        return self._forward_impl(x, feature_map)
 
 
 def _resnet(
     arch: str,
     block: Type[Union[BasicBlock, Bottleneck]],
     layers: List[int],
-    scale: int,
+    K: int,
+    M: int,
     progress: bool,
     **kwargs: Any
 ) -> ResNet:
-    model = ResNet(scale, block, layers, **kwargs)
+    model = ResNet(K, M, block, layers, **kwargs)
     return model
 
-def resnet50_delta(scale: int, progress: bool = True, **kwargs: Any) -> ResNet:
-    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], scale, progress,
+def resnet50_delta(K: int, M: int, progress: bool = True, **kwargs: Any) -> ResNet:
+    return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], K, M, progress,
                    **kwargs)
 
