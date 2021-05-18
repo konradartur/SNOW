@@ -24,7 +24,6 @@ class ChannelPool(nn.Module):
 
     def forward(self, input):
         vals, indices = torch.topk(self.params + torch.rand(self.in_channels), self.out_channels)
-        # print(type(input))
         batch_size, num_channels, width, height = input.shape
         result = vals * input[:, indices, :, :].view(batch_size, width, height, self.out_channels)
         return result.view(batch_size, self.out_channels, width, height)
@@ -62,13 +61,13 @@ class Bottleneck(nn.Module):
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes + M, width)
-        self.conv1_chp = ChannelPool(inplanes, M)
+        self.conv1_chp = ChannelPool(width, M)
         self.bn1 = norm_layer(width + M)
         self.conv2 = conv3x3(width + M, width, stride, groups, dilation)
         self.conv2_chp = ChannelPool(width, M)
         self.bn2 = norm_layer(width + M)
         self.conv3 = conv1x1(width + M, planes * self.expansion)
-        self.conv3_chp = ChannelPool(width, M)
+        self.conv3_chp = ChannelPool(planes * self.expansion, M)
         self.bn3 = norm_layer(planes * self.expansion + M)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -149,16 +148,17 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes + M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], K, M)
-        self.layer2 = self._make_layer(block, 128, layers[1], K, M, stride=2,
+        self.layer1 = self._make_layer(block, 64//K, layers[0], K, M)
+        self.layer2 = self._make_layer(block, 128//K, layers[1], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256, layers[2], K, M, stride=2,
+        self.layer3 = self._make_layer(block, 256//K, layers[2], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, 512, layers[3], K, M, stride=2,
+        self.layer4 = self._make_layer(block, 512//K, layers[3], K, M, stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+        self.mod_layers = nn.Sequential(*[*self.layer1, *self.layer2, *self.layer3, *self.layer4])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512//K * block.expansion, num_classes)
+        self.fc = nn.Linear(512//K * block.expansion + 2, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -220,7 +220,6 @@ class ResNet(nn.Module):
             layer_name = "layer{}_inner".format(idx+1)
             for idy, block in enumerate(layer):
                 block_name = "{}_inner".format(idy)
-                print(layer_name, block_name)
                 x = block(x, feature_map[layer_name][block_name])
 
         x = self.avgpool(x)
