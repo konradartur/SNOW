@@ -7,17 +7,6 @@ import torch.nn.functional as F
 
 from models import resnet50_delta
 
-class ChannelPool(nn.MaxPool1d):
-    def forward(self, input):
-        n, c, w, h = input.size()
-        input = input.view(n,c,w*h).permute(0,2,1)
-        pooled =  F.max_pool1d(input, self.kernel_size, self.stride,
-                        self.padding, self.dilation, self.ceil_mode,
-                        self.return_indices)
-        _, _, c = pooled.size()
-        pooled = pooled.permute(0,2,1)
-        return pooled.view(n,c,w,h)
-
 
 class Snow(nn.Module):
     def __init__(self, scale, out_size):
@@ -49,15 +38,33 @@ class Snow(nn.Module):
         self.source_activations.clear()
         return x
 
+
+class ChannelPool(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ChannelPool, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.params = torch.rand(in_channels, requires_grad=True)
+
+    def forward(self, input):
+        vals, indices = torch.topk(self.params + torch.rand(self.in_channels), self.out_channels)
+        batch_size, num_channels, width, height = input.shape
+        result = vals * input[:, indices, :, :].view(batch_size, width, height, self.out_channels)
+        return result.view(batch_size, self.out_channels, width, height)
     
 
+chp = ChannelPool(16, 2)
 
-snow_model = Snow(8, 12)
+A = torch.rand((64, 16, 8, 8))
+res = chp(A)
+print(res.shape)
 
-train, valid = get_cifar100()
-for b in enumerate(train):
-    idx, (x, y) = b
-    if idx == 1:
-        break
-    outputs = snow_model(x)
+# snow_model = Snow(8, 12)
+
+# train, valid = get_cifar100()
+# for b in enumerate(train):
+#     idx, (x, y) = b
+#     if idx == 1:
+#         break
+#     outputs = snow_model(x)
 

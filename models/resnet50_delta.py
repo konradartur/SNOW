@@ -247,6 +247,3 @@ def resnet50_delta(scale: int, progress: bool = True, **kwargs: Any) -> ResNet:
     return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], scale, progress,
                    **kwargs)
 
-
-model = resnet50_delta(8)
-print(model)
