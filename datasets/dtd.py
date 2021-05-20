@@ -1,5 +1,7 @@
 import numpy as np
 import os
+
+import torch
 from PIL import Image
 from scipy.io import loadmat
 from torch.utils.data import Dataset
@@ -11,7 +13,7 @@ def get_dtd(*, resize=None, **kwargs):
     mean = [0.5273, 0.4702, 0.4253]
     std = [0.1804, 0.1814, 0.1779]
 
-    dir_path = os.path.join("data", "dtd")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "dtd")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -40,11 +42,16 @@ class DTD(Dataset):
         split = data['images'][0][0][2][0]
         self.paths = np.concatenate(data['images'][0][0][1][0][np.isin(split, split_id)])
         self.labels = data['images'][0][0][3][0][np.isin(split, split_id)]
+        self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
-    def __getitem__(self, idx):
-        label = self.labels[idx]
+    def __loadimg__(self, idx):
         path = self.paths[idx]
         img = Image.open(os.path.join(self.data_dir, 'images', path)).convert("RGB")
+        return img
+
+    def __getitem__(self, idx):
+        label = torch.tensor(self.labels[idx]).type(torch.LongTensor)
+        img = self.data[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label

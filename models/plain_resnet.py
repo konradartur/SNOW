@@ -7,8 +7,8 @@ import pytorch_lightning.metrics.functional as FM
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def get_resnet():
-    return ResNet
+def get_resnet(**kwargs):
+    return ResNet(**kwargs)
 
 
 class ResNet(pl.LightningModule):
@@ -16,9 +16,8 @@ class ResNet(pl.LightningModule):
     def __init__(self, **kwargs):
         super(ResNet, self).__init__()
         self.config = kwargs
-        self.size = kwargs["model_kwargs"]['size']
-        self.pretrained = kwargs['model_kwargs'].get('pretrained', True)
-        self.optim_name = kwargs['optim_kwargs']['name']
+        self.size = kwargs.get('model_size', 50)
+        self.pretrained = kwargs.get('pretrained', True)
         self.network = self.get_()
 
     def get_(self):
@@ -67,6 +66,9 @@ class ResNet(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        pass
-        # optim = Runtime.optimizers[self.optim_name]
-        # return optim(self.parameters(), **self.config)
+        return torch.optim.SGD(
+                self.parameters(),
+                lr=self.config["learning_rate"],
+                momentum=self.config["momentum"],
+                weight_decay=self.config["weight_decay"]
+        )

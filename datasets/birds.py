@@ -10,11 +10,11 @@ from PIL import Image
 from datasets.utils import print_dataset_mean_std
 
 
-def get_cub_birds(*, augment=True, resize=None, **kwargs):
+def get_birds(*, augment=True, resize=None, **kwargs):
     mean = [0.48592031, 0.49923815, 0.43139376]
     std = [0.05136569, 0.04910943, 0.06800005]
 
-    dir_path = os.path.join("data", "birds")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "birds")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
     # if we augment and resize we would like to put in train_transforms RandomResizedCrop, not just Resize
@@ -59,10 +59,16 @@ class CubBirds(Dataset):
         else:
             raise RuntimeError("wrong split")
 
-    def __getitem__(self, idx):
-        label = self.labels[idx]
+        self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
+
+    def __loadimg__(self, idx):
         path = self.paths[idx]
         img = Image.open(os.path.join(self.data_dir, "images", path)).convert("RGB")
+        return img
+
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        img = self.data[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label
@@ -72,5 +78,5 @@ class CubBirds(Dataset):
 
 
 if __name__ == '__main__':
-    ds = get_cub_birds()[0]
+    ds = get_birds()[0]
     print_dataset_mean_std(ds)

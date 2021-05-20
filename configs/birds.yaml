@@ -1,0 +1,17 @@
+seed: 420
+
+experiment_name: "finetune_birds"
+experiment_class: FinetuneResnet
+dataset: birds
+resize: 224
+
+n_epochs: 1
+batch_size: 128
+
+optim_name: sgd
+learning_rate: 0.05
+weight_decay: 0
+momentum: 0
+
+model_name: resnet
+model_size: 50
