@@ -3,6 +3,7 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
+import math
 from typing import Type, Any, Callable, Union, List, Optional, Dict
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
@@ -16,17 +17,23 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 class ChannelPool(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, variance=0.01):
         super(ChannelPool, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.params = torch.rand(in_channels, requires_grad=True)
+        self.params = torch.rand((in_channels,), requires_grad=True).to("cuda")
+        self.variance = variance
 
-    def forward(self, input):
-        vals, indices = torch.topk(self.params + torch.rand(self.in_channels), self.out_channels)
-        batch_size, num_channels, width, height = input.shape
-        result = vals * input[:, indices, :, :].view(batch_size, width, height, self.out_channels)
-        return result.view(batch_size, self.out_channels, width, height)
+    def forward(self, x):
+        
+        if self.training:
+            rand_v = torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,)).to("cuda")
+            _, indices = torch.topk(self.params + rand_v, self.out_channels)
+            sel_weight = self.params[indices]
+        else:
+            sel_weight, indices = torch.topk(self.params, self.out_channels)
+        result = sel_weight.view(1,-1,1,1) * x[:, indices, :, :]
+        return result
 
 
 class BasicBlock(nn.Module):
@@ -53,7 +60,8 @@ class Bottleneck(nn.Module):
         groups: int = 1,
         base_width: int = 64,
         dilation: int = 1,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
+        norm_layer: Optional[Callable[..., nn.Module]] = None,
+        variance: float = 0.01,
     ) -> None:
         super(Bottleneck, self).__init__()
         if norm_layer is None:
@@ -61,17 +69,17 @@ class Bottleneck(nn.Module):
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes + M, width)
-        self.conv1_chp = ChannelPool(width, M)
+        self.conv1_chp = ChannelPool(width, M, variance)
         self.bn1 = norm_layer(width + M)
         self.conv2 = conv3x3(width + M, width, stride, groups, dilation)
-        self.conv2_chp = ChannelPool(width, M)
+        self.conv2_chp = ChannelPool(width, M, variance)
         self.bn2 = norm_layer(width + M)
         self.conv3 = conv1x1(width + M, planes * self.expansion)
-        self.conv3_chp = ChannelPool(planes * self.expansion, M)
+        self.conv3_chp = ChannelPool(planes * self.expansion, M, variance)
         self.bn3 = norm_layer(planes * self.expansion + M)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
-        self.downsample_chp = ChannelPool(planes * self.expansion, M)
+        self.downsample_chp = ChannelPool(planes * self.expansion, M, variance)
         self.stride = stride
 
     def _apply_chp(self, chp, t, x):
@@ -124,7 +132,8 @@ class ResNet(nn.Module):
         groups: int = 1,
         width_per_group: int = 64,
         replace_stride_with_dilation: Optional[List[bool]] = None,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
+        norm_layer: Optional[Callable[..., nn.Module]] = None,
+        variance = 0.01,
     ) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -148,13 +157,13 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes + M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64//K, layers[0], K, M)
+        self.layer1 = self._make_layer(block, 64//K, layers[0], K, M, variance=variance)
         self.layer2 = self._make_layer(block, 128//K, layers[1], K, M, stride=2,
-                                       dilate=replace_stride_with_dilation[0])
+                                       dilate=replace_stride_with_dilation[0], variance=variance)
         self.layer3 = self._make_layer(block, 256//K, layers[2], K, M, stride=2,
-                                       dilate=replace_stride_with_dilation[1])
+                                       dilate=replace_stride_with_dilation[1], variance=variance)
         self.layer4 = self._make_layer(block, 512//K, layers[3], K, M, stride=2,
-                                       dilate=replace_stride_with_dilation[2])
+                                       dilate=replace_stride_with_dilation[2], variance=variance)
         self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
         self.mod_layers = nn.Sequential(*[*self.layer1, *self.layer2, *self.layer3, *self.layer4])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -178,7 +187,7 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
     def _make_layer(self, block: Type[Union[BasicBlock, Bottleneck]], planes: int, blocks: int, K: int, M: int,
-                    stride: int = 1, dilate: bool = False) -> nn.Sequential:
+                    stride: int = 1, dilate: bool = False, variance=0.01) -> nn.Sequential:
         norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
@@ -193,12 +202,12 @@ class ResNet(nn.Module):
 
         layers = []
         layers.append(block(self.inplanes, planes, K, M, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, norm_layer))
+                            self.base_width, previous_dilation, norm_layer, variance=variance))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes, K, M, groups=self.groups,
                                 base_width=self.base_width, dilation=self.dilation,
-                                norm_layer=norm_layer))
+                                norm_layer=norm_layer, variance=variance))
 
         return layers
     

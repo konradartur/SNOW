@@ -49,7 +49,7 @@ class Car(Dataset):
         return img
 
     def __getitem__(self, idx):
-        label = torch.tensor(self.labels[idx]).type(torch.LongTensor)
+        label = torch.tensor(self.labels[idx]).type(torch.LongTensor)-1
         img = self.data[idx]
         if self.transforms:
             img = self.transforms(img)
