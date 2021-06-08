@@ -8,7 +8,7 @@ import os
 from os.path import join
 
 
-def get_cifar100(image_size=None, batch_size=128, rand_frac=0):
+def get_cifar100(image_size=None, batch_size=128):
     cifar_mean = (0.4914, 0.4822, 0.4465)
     cifar_std = (0.2023, 0.1994, 0.2010)
 

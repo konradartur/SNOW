@@ -1,5 +1,6 @@
 from torchvision.models.resnet import resnet50
 from datasets.car import get_cars
+from datasets import get_cifar100
 import torchvision
 import torch
 import torch.nn as nn
@@ -19,7 +20,6 @@ class Snow(nn.Module):
         self.add_hooks()
         self.freeze_model()
         self.delta_model = resnet50_delta(K, M, num_classes=out_size, variance=variance)
-        # self.ch_pool = ChannelPool()
     
     def add_hooks(self):
         for name, module in self.source_model.named_modules():
@@ -59,9 +59,9 @@ class Snow(nn.Module):
         return result_dict
 
     def __get_feature_maps(self, x):
+        self.source_activations = {}
         self.source_model(x)
         feature_map = self.__ugly_ass_function()
-        self.source_activations.clear()
         return feature_map
 
     def forward(self, x):
@@ -113,21 +113,40 @@ def test_loop(dataloader, model, loss_fn, device):
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
+# if __name__ == "__main__":
+#     device = "cuda"
+#     train_dataloader, test_dataloader = get_cifar100(image_size=224, batch_size=64)
+#     model = Snow(4, 8, 196, variance=0.001).to(device)
+#     learning_rate = 1
+#     momentum = 0.9
+#     loss_fn = nn.CrossEntropyLoss()
+#     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=0.0001)
+#     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+#     epochs = 6
+#     for t in range(epochs):
+#         print(f"Epoch {t+1}\n-------------------------------")
+#         train_loop(train_dataloader, model, loss_fn, optimizer, device)
+#         scheduler.step()
+#         test_loop(test_dataloader, model, loss_fn, device)
+#     print("Done!")
+
 if __name__ == "__main__":
     device = "cuda"
     train_dataset, test_dataset = get_cars(resize=224)
-    batch_size = 64
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    batch_size = 16
+    print("Preping dataloader")
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     print("Dataset loaded")
-    model = Snow(8, 2, 196, variance=0.001).to(device)
+    model = Snow(16, 8, 196, variance=0.001).to(device)
+    print(model)
     print("Model created")
-    learning_rate = 1
+    learning_rate = 0.01
     momentum = 0.9
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=0.0001)
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-    epochs = 200
+    epochs = 10
     for t in range(epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loop(train_dataloader, model, loss_fn, optimizer, device)

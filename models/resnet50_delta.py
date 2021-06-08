@@ -19,15 +19,18 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 class ChannelPool(nn.Module):
     def __init__(self, in_channels, out_channels, variance=0.01):
         super(ChannelPool, self).__init__()
+        print("ChPool:", in_channels, out_channels)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.params = torch.rand((in_channels,), requires_grad=True).to("cuda")
         self.variance = variance
 
     def forward(self, x):
-        
+        print(self.params.shape)
+        print(torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,)).shape)
         if self.training:
-            rand_v = torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,)).to("cuda")
+            rand_v = torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,1)).to("cuda")
+            print("tutaj", rand_v.shape)
             _, indices = torch.topk(self.params + rand_v, self.out_channels)
             sel_weight = self.params[indices]
         else:
@@ -68,18 +71,18 @@ class Bottleneck(nn.Module):
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv1x1(inplanes + M, width)
-        self.conv1_chp = ChannelPool(width, M, variance)
-        self.bn1 = norm_layer(width + M)
-        self.conv2 = conv3x3(width + M, width, stride, groups, dilation)
-        self.conv2_chp = ChannelPool(width, M, variance)
-        self.bn2 = norm_layer(width + M)
-        self.conv3 = conv1x1(width + M, planes * self.expansion)
-        self.conv3_chp = ChannelPool(planes * self.expansion, M, variance)
-        self.bn3 = norm_layer(planes * self.expansion + M)
+        self.conv1 = conv1x1(inplanes + inplanes * K // M, width)
+        self.conv1_chp = ChannelPool(width * K, width * K // M, variance)
+        self.bn1 = norm_layer(width + width * K // M)
+        self.conv2 = conv3x3(width + width * K // M, width, stride, groups, dilation)
+        self.conv2_chp = ChannelPool(width * K, width * K // M, variance)
+        self.bn2 = norm_layer(width + width * K // M)
+        self.conv3 = conv1x1(width + width * K // M, planes * self.expansion)
+        self.conv3_chp = ChannelPool(planes * self.expansion * K, planes * self.expansion * K// M, variance)
+        self.bn3 = norm_layer(planes * self.expansion + planes * self.expansion * K// M)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
-        self.downsample_chp = ChannelPool(planes * self.expansion, M, variance)
+        self.downsample_chp = ChannelPool(planes * self.expansion * K, planes * self.expansion * K// M, variance)
         self.stride = stride
 
     def _apply_chp(self, chp, t, x):
@@ -153,8 +156,8 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.conv1_chp = ChannelPool(self.inplanes, M)
-        self.bn1 = norm_layer(self.inplanes + M)
+        self.conv1_chp = ChannelPool(self.inplanes * K, self.inplanes * K// M)
+        self.bn1 = norm_layer(self.inplanes + self.inplanes * K// M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64//K, layers[0], K, M, variance=variance)
@@ -167,7 +170,8 @@ class ResNet(nn.Module):
         self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
         self.mod_layers = nn.Sequential(*[*self.layer1, *self.layer2, *self.layer3, *self.layer4])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512//K * block.expansion + 2, num_classes)
+        fc_size = 512 // K * block.expansion 
+        self.fc = nn.Linear(fc_size + fc_size * K // M , num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -196,7 +200,7 @@ class ResNet(nn.Module):
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                conv1x1(self.inplanes + M, planes * block.expansion, stride),
+                conv1x1(self.inplanes + self.inplanes * K // M, planes * block.expansion, stride),
                 norm_layer(planes * block.expansion),
             )
 

@@ -44,15 +44,15 @@ class CubBirds(Dataset):
         self.transforms = transforms
 
         is_train = np.loadtxt(os.path.join(data_dir, "train_test_split.txt"), dtype=int)[:, 1]
-        if split is "train":
+        if split == "train":
             idxs = is_train == 1
             self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1]
             self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1]
-        elif split is "val":
+        elif split == "val":
             idxs = is_train == 0
             self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1][0::2]
             self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1][0::2]
-        elif split is "test":
+        elif split == "test":
             idxs = is_train == 0
             self.labels = np.loadtxt(os.path.join(data_dir, "image_class_labels.txt"), dtype=int)[idxs, 1][1::2]
             self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1][1::2]
