@@ -45,7 +45,7 @@ class Action(Dataset):
         self.paths = data[:, 0][filter]
         # %%
         labels_list = np.unique(data[:, 1]).tolist()
-        self.labels = np.array([labels_list.index(x) + 1 for x in data[:, 1][filter]])
+        self.labels = np.array([labels_list.index(x) - 1 for x in data[:, 1][filter]])
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):

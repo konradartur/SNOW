@@ -41,7 +41,9 @@ class DTD(Dataset):
             raise ValueError("Invalid split value")
         split = data['images'][0][0][2][0]
         self.paths = np.concatenate(data['images'][0][0][1][0][np.isin(split, split_id)])
-        self.labels = data['images'][0][0][3][0][np.isin(split, split_id)]
+        self.labels = data['images'][0][0][3][0][np.isin(split, split_id)] - 1
+        print(max(self.labels))
+        print(min(self.labels))
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):

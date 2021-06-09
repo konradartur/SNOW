@@ -58,7 +58,7 @@ class CubBirds(Dataset):
             self.paths = np.loadtxt(os.path.join(data_dir, "images.txt"), dtype=str)[idxs, 1][1::2]
         else:
             raise RuntimeError("wrong split")
-
+        self.labels = self.labels - 1
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):

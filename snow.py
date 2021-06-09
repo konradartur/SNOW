@@ -70,11 +70,11 @@ class Snow(nn.Module):
         return x
 
 def iterdict(d):
-  for k,v in d.items():        
-     if isinstance(v, dict):
-         iterdict(v)
-     else:            
-         print (k,":",v.shape)
+    for k,v in d.items():        
+        if isinstance(v, dict):
+            iterdict(v)
+        else:            
+            print (k,":",v.shape)
     
 
 # chp = ChannelPool(16, 2)
@@ -124,8 +124,8 @@ if __name__ == "__main__":
     train_dataset, test_dataset = get_cars(resize=224)
     batch_size = 32
     print("Preping dataloader")
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     print("Dataset loaded")
     print("Model created")
     learning_rate = 1

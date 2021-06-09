@@ -74,6 +74,7 @@ class Bottleneck(nn.Module):
         inplanes_scaled = inplanes // K
         planes_scaled = planes // K
         width_scaled = width // K
+        print(variance)
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         # print(inplanes, width, K, M)
         self.M = M
@@ -173,7 +174,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes // K, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.conv1_chp = ChannelPool(self.inplanes, self.inplanes // M)
+        self.conv1_chp = ChannelPool(self.inplanes, self.inplanes // M, variance=variance)
         self.bn1 = norm_layer(self.inplanes // K + self.inplanes // M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)

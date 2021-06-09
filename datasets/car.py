@@ -40,7 +40,9 @@ class Car(Dataset):
         else:
             test = 1
         self.paths = [x[0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
-        self.labels = [x[5][0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
+        self.labels = [x[5][0][0] - 1 for x in data['annotations'][0] if x[-1][0][0] == test]
+        print(min(self.labels))
+        print(max(self.labels))
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):
