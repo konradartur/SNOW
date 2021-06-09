@@ -69,6 +69,12 @@ class Snow(nn.Module):
         x = self.delta_model(x, feature_map)
         return x
 
+def iterdict(d):
+  for k,v in d.items():        
+     if isinstance(v, dict):
+         iterdict(v)
+     else:            
+         print (k,":",v.shape)
     
 
 # chp = ChannelPool(16, 2)
@@ -114,7 +120,7 @@ def test_loop(dataloader, model, loss_fn, device):
 
 if __name__ == "__main__":
     device = "cuda"
-    model = Snow(64, 1, 196, variance=0.001).to(device)
+    model = Snow(8, 8, 196, variance=0.001).to(device)
     train_dataset, test_dataset = get_cars(resize=224)
     batch_size = 32
     print("Preping dataloader")
@@ -122,12 +128,12 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     print("Dataset loaded")
     print("Model created")
-    learning_rate = 0.001
+    learning_rate = 1
     momentum = 0.9
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=0.0001)
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-    epochs = 10
+    epochs = 200
     for t in range(epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loop(train_dataloader, model, loss_fn, optimizer, device)
