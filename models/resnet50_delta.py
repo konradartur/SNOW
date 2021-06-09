@@ -6,6 +6,9 @@ import torch.nn as nn
 import math
 from typing import Type, Any, Callable, Union, List, Optional, Dict
 
+
+device = "cuda"
+
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -22,15 +25,13 @@ class ChannelPool(nn.Module):
         print("ChPool:", in_channels, out_channels)
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.params = torch.rand((in_channels,), requires_grad=True).to("cuda")
+        self.params = torch.randn((in_channels,), requires_grad=True).to(device)
         self.variance = variance
 
     def forward(self, x):
-        print(self.params.shape)
-        print(torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,)).shape)
         if self.training:
-            rand_v = torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,1)).to("cuda")
-            print("tutaj", rand_v.shape)
+            rand_v = torch.normal(0.0, math.sqrt(self.variance), (self.in_channels,)).to(device)
+            # print("tutaj", rand_v.shape)
             _, indices = torch.topk(self.params + rand_v, self.out_channels)
             sel_weight = self.params[indices]
         else:
@@ -156,7 +157,7 @@ class ResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.conv1_chp = ChannelPool(self.inplanes * K, self.inplanes * K// M)
+        self.conv1_chp = ChannelPool(self.inplanes, self.inplanes * K// M)
         self.bn1 = norm_layer(self.inplanes + self.inplanes * K// M)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
