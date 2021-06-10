@@ -1,19 +1,18 @@
-import numpy as np
 import os
 
+import json
 import torch
 from PIL import Image
-from scipy.io import loadmat
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 from datasets.utils import print_dataset_mean_std
 
 
-def get_dtd(*, resize=None, **kwargs):
-    mean = [0.5273, 0.4702, 0.4253]
-    std = [0.1804, 0.1814, 0.1779]
+def get_food(*, resize=None, **kwargs):
+    mean = [0.5450, 0.4435, 0.3436]
+    std = [0.2335, 0.2443, 0.2424]
 
-    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "dtd")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "food")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -21,28 +20,31 @@ def get_dtd(*, resize=None, **kwargs):
         basic_transforms.insert(0, Resize((resize, resize)))
     train_transforms = basic_transforms
 
-    train = DTD(dir_path, Compose(train_transforms), split="train")
-    test = DTD(dir_path, Compose(basic_transforms), split="test")
+    train = Food(dir_path, Compose(train_transforms), split="train")
+    test = Food(dir_path, Compose(basic_transforms), split="test")
     return train, test
 
 
-class DTD(Dataset):
+class Food(Dataset):
 
     def __init__(self, data_dir, transforms, split):
         super().__init__()
         self.data_dir = data_dir
         self.transforms = transforms
-        data = loadmat(os.path.join(data_dir, 'imdb', 'imdb.mat'))
+
         if split == "train":
-            split_id = [1, 2]
+            with open(os.path.join(self.data_dir, "meta", "train.json")) as file:
+                data = json.load(file)
         elif split == "test":
-            split_id = [3]
+            with open(os.path.join(self.data_dir, "meta", "test.json")) as file:
+                data = json.load(file)
         else:
             raise ValueError("Invalid split value")
-        split = data['images'][0][0][2][0]
-        self.paths = np.concatenate(data['images'][0][0][1][0][np.isin(split, split_id)])
-        self.labels = data['images'][0][0][3][0][np.isin(split, split_id)] - 1
-        self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
+        label_list = list(data.keys())
+        self.paths = [path + ".jpg" for paths in data.values() for path in paths]
+        self.labels = [label_list.index(label) for label, paths in data.items() for _ in paths]
+        # self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
+        # Too big dataset to load whole into memory :(
 
     def __loadimg__(self, idx):
         path = self.paths[idx]
@@ -51,7 +53,8 @@ class DTD(Dataset):
 
     def __getitem__(self, idx):
         label = torch.tensor(self.labels[idx]).type(torch.LongTensor)
-        img = self.data[idx]
+        # img = self.data[idx]
+        img = self.__loadimg__(idx)
         if self.transforms:
             img = self.transforms(img)
         return img, label
@@ -61,5 +64,5 @@ class DTD(Dataset):
 
 
 if __name__ == '__main__':
-    ds = get_dtd()[0]
+    ds = get_food()[0]
     print_dataset_mean_std(ds)

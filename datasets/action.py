@@ -38,14 +38,14 @@ class Action(Dataset):
                         data.append([path[:-1], '_'.join(file.split('_')[:-1]), file.split('_')[-1].split('.')[0]])
         data = np.array(data)
 
-        if split not in ['test','train']:
+        if split not in ['test', 'train']:
             raise ValueError('Invalid split argument.')
 
         filter = data[:, 2] == split
         self.paths = data[:, 0][filter]
         # %%
         labels_list = np.unique(data[:, 1]).tolist()
-        self.labels = np.array([labels_list.index(x) + 1 for x in data[:, 1][filter]])
+        self.labels = np.array([labels_list.index(x) for x in data[:, 1][filter]])
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):
