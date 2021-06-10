@@ -1,4 +1,6 @@
 import os
+
+import torch
 from PIL import Image
 from scipy.io import loadmat
 from torch.utils.data import Dataset
@@ -13,7 +15,8 @@ def get_cars(*, resize=None, **kwargs):
     mean = [0.4707, 0.4601, 0.4550]
     std = [0.2667, 0.2658, 0.2706]
 
-    dir_path = os.path.join("data", "car")
+    # dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "car")
+    dir_path = os.path.join(os.environ["DATA_DIR"], "car")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -37,13 +40,18 @@ class Car(Dataset):
             test = 0
         else:
             test = 1
-        self.paths = [x[0][0] for x in data['annotations'][0] if x[-1] == test]
-        self.labels = [x[1][0][0] for x in data['annotations'][0] if x[-1] == test]
+        self.paths = [x[0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
+        self.labels = [x[5][0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
+        self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
-    def __getitem__(self, idx):
-        label = self.labels[idx]
+    def __loadimg__(self, idx):
         path = self.paths[idx]
         img = Image.open(os.path.join(self.data_dir, path)).convert("RGB")
+        return img
+
+    def __getitem__(self, idx):
+        label = torch.tensor(self.labels[idx]).type(torch.LongTensor)
+        img = self.data[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label
