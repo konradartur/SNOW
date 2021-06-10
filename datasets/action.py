@@ -4,7 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 
-from datasets import print_dataset_mean_std
+from datasets.utils import print_dataset_mean_std
 
 
 def get_action(*, resize=None, **kwargs):
@@ -39,7 +39,7 @@ class Action(Dataset):
                         data.append([path[:-1], '_'.join(file.split('_')[:-1]), file.split('_')[-1].split('.')[0]])
         data = np.array(data)
 
-        if split not in ['test','train']:
+        if split not in ['test', 'train']:
             raise ValueError('Invalid split argument.')
 
         filter = data[:, 2] == split

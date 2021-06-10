@@ -40,8 +40,8 @@ class ResNet(pl.LightningModule):
         acc = FM.accuracy(pred, y)
 
         self.log_dict({
-                'train_loss': loss,
-                'train_acc': acc
+            'train_loss': loss,
+            'train_acc': acc
         }, on_epoch=True, on_step=False)
 
         return loss
@@ -53,8 +53,8 @@ class ResNet(pl.LightningModule):
         acc = FM.accuracy(pred, y)
 
         self.log_dict({
-                'val_loss': loss,
-                'val_acc': acc
+            'val_loss': loss,
+            'val_acc': acc
         }, on_epoch=True, on_step=False)
 
         return loss
