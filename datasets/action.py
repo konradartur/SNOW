@@ -4,7 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 
-from datasets.utils import print_dataset_mean_std
+from datasets import print_dataset_mean_std
 
 
 def get_action(*, resize=None, **kwargs):
