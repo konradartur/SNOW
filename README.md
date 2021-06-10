@@ -27,3 +27,8 @@
 2. Unpack file `CUB_200_2011.tgz` into `data/birds`.
 3. There should be directories `data/birds/attributes`, `data/birds/images`, `data/birds/parts`, etc.
 
+### FOOD-101
+
+1. Download dataset from: https://www.kaggle.com/dansbecker/food-101 
+2. Unpack file `archive.zip` into `data/food` (only contents of dir `food-101` should be extracted).
+3. There should be directories `data/food/images`, `data/food/meta`.

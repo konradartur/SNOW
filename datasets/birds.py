@@ -68,6 +68,7 @@ class CubBirds(Dataset):
 
     def __getitem__(self, idx):
         img = self.data[idx]
+        label = self.labels[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label

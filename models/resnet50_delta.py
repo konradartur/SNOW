@@ -1,13 +1,13 @@
 # source: https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html#resnet50
-# with some modifications 
+# with some modifications
 import torch
 from torch import Tensor
 import torch.nn as nn
 import math
 from typing import Type, Any, Callable, Union, List, Optional, Dict
 
-
 device = "cuda"
+
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
@@ -18,6 +18,7 @@ def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, d
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
 
 class ChannelPool(nn.Module):
     def __init__(self, in_channels, out_channels, variance=0.01):
@@ -36,7 +37,7 @@ class ChannelPool(nn.Module):
             sel_weight = self.params[indices]
         else:
             sel_weight, indices = torch.topk(self.params, self.out_channels)
-        result = sel_weight.view(1,-1,1,1) * x[:, indices, :, :]
+        result = sel_weight.view(1, -1, 1, 1) * x[:, indices, :, :]
         return result
 
 
@@ -54,18 +55,18 @@ class Bottleneck(nn.Module):
     expansion: int = 4
 
     def __init__(
-        self,
-        inplanes: int,
-        planes: int,
-        K: int,
-        M: int,
-        stride: int = 1,
-        downsample: Optional[nn.Module] = None,
-        groups: int = 1,
-        base_width: int = 64,
-        dilation: int = 1,
-        norm_layer: Optional[Callable[..., nn.Module]] = None,
-        variance: float = 0.01,
+            self,
+            inplanes: int,
+            planes: int,
+            K: int,
+            M: int,
+            stride: int = 1,
+            downsample: Optional[nn.Module] = None,
+            groups: int = 1,
+            base_width: int = 64,
+            dilation: int = 1,
+            norm_layer: Optional[Callable[..., nn.Module]] = None,
+            variance: float = 0.01,
     ) -> None:
         super(Bottleneck, self).__init__()
         if norm_layer is None:
@@ -74,7 +75,6 @@ class Bottleneck(nn.Module):
         inplanes_scaled = inplanes // K
         planes_scaled = planes // K
         width_scaled = width // K
-        print(variance)
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         # print(inplanes, width, K, M)
         self.M = M
@@ -90,7 +90,7 @@ class Bottleneck(nn.Module):
         self.bn3 = norm_layer(planes_scaled * self.expansion + planes * self.expansion // M)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
-        self.downsample_chp = ChannelPool(planes * self.expansion , planes * self.expansion // M, variance)
+        self.downsample_chp = ChannelPool(planes * self.expansion, planes * self.expansion // M, variance)
         self.stride = stride
 
     def _apply_chp(self, chp, t, x):
@@ -143,18 +143,18 @@ class Bottleneck(nn.Module):
 class ResNet(nn.Module):
 
     def __init__(
-        self,
-        K: int,
-        M: int,
-        block: Type[Union[BasicBlock, Bottleneck]],
-        layers: List[int],
-        num_classes: int = 1000,
-        zero_init_residual: bool = False,
-        groups: int = 1,
-        width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[List[bool]] = None,
-        norm_layer: Optional[Callable[..., nn.Module]] = None,
-        variance = 0.01,
+            self,
+            K: int,
+            M: int,
+            block: Type[Union[BasicBlock, Bottleneck]],
+            layers: List[int],
+            num_classes: int = 1000,
+            zero_init_residual: bool = False,
+            groups: int = 1,
+            width_per_group: int = 64,
+            replace_stride_with_dilation: Optional[List[bool]] = None,
+            norm_layer: Optional[Callable[..., nn.Module]] = None,
+            variance=0.01,
     ) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -189,7 +189,7 @@ class ResNet(nn.Module):
         self.mod_layers = nn.Sequential(*[*self.layer1, *self.layer2, *self.layer3, *self.layer4])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         fc_size = 512 * block.expansion
-        self.fc = nn.Linear(fc_size // K + fc_size // M , num_classes)
+        self.fc = nn.Linear(fc_size // K + fc_size // M, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -232,7 +232,7 @@ class ResNet(nn.Module):
                                 norm_layer=norm_layer, variance=variance))
 
         return layers
-    
+
     def _apply_chp(self, chp, t, x):
         return torch.cat((chp(t), x), dim=1)
 
@@ -247,9 +247,9 @@ class ResNet(nn.Module):
         x = self.maxpool(x)
         # print("Before layers x", x.shape)
 
-        # for block in 
+        # for block in
         for idx, layer in enumerate(self.layers):
-            layer_name = "layer{}_inner".format(idx+1)
+            layer_name = "layer{}_inner".format(idx + 1)
             for idy, block in enumerate(layer):
                 block_name = "{}_inner".format(idy)
                 x = block(x, feature_map[layer_name][block_name])
@@ -265,18 +265,18 @@ class ResNet(nn.Module):
 
 
 def _resnet(
-    arch: str,
-    block: Type[Union[BasicBlock, Bottleneck]],
-    layers: List[int],
-    K: int,
-    M: int,
-    progress: bool,
-    **kwargs: Any
+        arch: str,
+        block: Type[Union[BasicBlock, Bottleneck]],
+        layers: List[int],
+        K: int,
+        M: int,
+        progress: bool,
+        **kwargs: Any
 ) -> ResNet:
     model = ResNet(K, M, block, layers, **kwargs)
     return model
 
+
 def resnet50_delta(K: int, M: int, progress: bool = True, **kwargs: Any) -> ResNet:
     return _resnet('resnet50', Bottleneck, [3, 4, 6, 3], K, M, progress,
                    **kwargs)
-
