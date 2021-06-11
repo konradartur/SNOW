@@ -4,6 +4,7 @@ from itertools import product
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import pytorch_lightning.callbacks
 import torch
 import yaml
 from pytorch_lightning import Trainer
@@ -44,13 +45,14 @@ class FinetuneResnet:
                 default_root_dir=self.save_path,
                 max_epochs=self.config["n_epochs"],
                 gpus=gpus if torch.cuda.is_available() else 0,
-                logger=CSVLogger(self.save_path, "", ""),
-                checkpoint_callback=False
+                logger=CSVLogger(self.save_path, "", "")
         )
 
         start_time = time.time()
         trainer.fit(model, train_loader, val_loader)
         end_time = time.time()
+
+        torch.save(model.state_dict(), os.path.join(self.save_path, "weights"))
 
         f = open(os.path.join(self.save_path, 'training_duration.txt'), 'w')
         f.write(str(end_time - start_time))
@@ -58,3 +60,7 @@ class FinetuneResnet:
 
     def report(self):
         pass
+
+    def visualize_filters(self):
+        model = plain_resnet.get_resnet(**self.config)
+        model.collect_filters()

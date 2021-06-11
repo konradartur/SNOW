@@ -95,3 +95,11 @@ class ResNet(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 
         return [optimizer], [scheduler]
+
+    def collect_filters(self):
+        counter = 0
+        for name, val in self.state_dict().items():
+            if 'conv' in name and 'layer3' in name:
+                counter += 1
+                print(counter, "\t", name, "\t", val.size())
+
