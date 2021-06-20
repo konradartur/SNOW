@@ -2,6 +2,7 @@
 /report/**
 !/report/report.tex
 !/report/report.pdf
+!/report/SNOW.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
