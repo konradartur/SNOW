@@ -132,16 +132,56 @@
             \hline
             \thead{Dataset}          & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} & \thead{Food-101} \\
             \hline
-            Max accuracy on test set & $8$            & $8$          & $0.001$     & $64$          & $1.0$            \\
+            Max accuracy on test set & $10.59\%$            & $12.70\%$          & $30.53\%$     & $1.38\%$          & ???            \\
             \hline
         \end{tabular}
-        \caption{SNOW results}
+        \caption{SNOW results (last running)}
         \label{tab:2}
     \end{table}
 
-    \subsection{Throughput}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{accs}
+        \caption{Plot of accuracy by epoch (last running)}
+        \label{fig:accs}
+    \end{figure}
+
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{accs_old}
+        \caption{Plot of accuracy by epoch (from former run)}
+        \label{fig:accs2}
+    \end{figure}
+
+    As we see from the plots: \ref{fig:accs} and \ref{fig:accs2} during different runs training stuck in different local minima.
+    This differs from what was shown in \cite{paper}.
+    Models, we have implemented, were not learning so quickly and could not reach accuracies those obtained by transfer learning techniques.
+    The reason of that can be differences between our implementation and what authors have coded.
+    Maybe Channel Pooling operation is placed too densely in the model - we suppose that injection of results of frozen weights of source model may perform poor if it is used in every convolutional layer.
+
+    \subsection{Evaluation and Throughput}
+
+    \begin{table}
+        \centering
+        \begin{tabular}{|c|c|c|c|c|c|}
+            \hline
+            \thead{Dataset}          & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} & \thead{Food-101} \\
+            \hline
+            SNOW & $217.09$            & $62.86$          & $214.04$     & $218.89$          & ???            \\
+            \hline
+        \end{tabular}
+        \caption{Throughput (images per second)}
+        \label{tab:3}
+    \end{table}
+
+    We see that result from cars dataset is much lower than others.
+    It can be caused by bigger size of those images.
+    We can not compare results with those from paper because we use different computation server and graphics cards.
+    We used Nvidia RTX2080Ti and RTX1080 GPUs. Each has memory of 11GB RAM what forced us to decrease batch size to 64.
 
     \subsection{Visualization of filters}
+
 
 
     \section{Conslusions}
