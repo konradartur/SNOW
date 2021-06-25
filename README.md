@@ -1,5 +1,9 @@
 # SNOW
 
+## Report
+
+Report is available [here](https://github.com/konradartur/SNOW/blob/main/report/report.pdf). 
+
 ## Dataset preparation
 
 ### Action
@@ -32,3 +36,9 @@
 1. Download dataset from: https://www.kaggle.com/dansbecker/food-101 
 2. Unpack file `archive.zip` into `data/food` (only contents of dir `food-101` should be extracted).
 3. There should be directories `data/food/images`, `data/food/meta`.
+
+## Running
+
+To run snow use `snow.py`. If you want to change device, remember to do it in both `snow.py` and `models/resnet50_delta.py`!
+
+To run transfer learning approach use `main.py`.
