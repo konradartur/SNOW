@@ -1,3 +1,5 @@
+# FO AND FE
+
 seed: 420
 
 experiment_name: None
@@ -5,13 +7,35 @@ experiment_class: FinetuneResnet
 dataset: None
 resize: 224
 
-n_epochs: 30
+n_epochs: 180
 batch_size: 128
 
 optim_name: sgd
-learning_rate: None
-weight_decay: None
-momentum: None
+optim_mode: None
+learning_rate: 0.05
+weight_decay: 0.0001
+momentum: 0.9
 
 model_name: resnet
 model_size: 50
+
+
+# FT
+#seed: 420
+#
+#experiment_name: None
+#experiment_class: FinetuneResnet
+#dataset: None
+#resize: 224
+#
+#n_epochs: 90
+#batch_size: 64
+#
+#optim_name: sgd
+#optim_mode: None
+#learning_rate: 0.03
+#weight_decay: 0.0001
+#momentum: 0.9
+#
+#model_name: resnet
+#model_size: 50

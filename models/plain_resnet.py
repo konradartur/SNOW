@@ -18,22 +18,16 @@ class ResNet(pl.LightningModule):
         self.config = kwargs
         self.size = kwargs.get('model_size', 50)
         self.pretrained = kwargs.get('pretrained', True)
+        self.optim_mode = kwargs.get('optim_mode', 'ft')
         self.network = self.get_()
 
     def get_(self):
-        model = None
-        if self.size is 18:
-            model = torchvision.models.resnet18(pretrained=self.pretrained)
-        elif self.size is 34:
+        if self.size is 34:
             model = torchvision.models.resnet34(pretrained=self.pretrained)
         elif self.size is 50:
             model = torchvision.models.resnet50(pretrained=self.pretrained)
-        elif self.size is 101:
-            model = torchvision.models.resnet101(pretrained=self.pretrained)
-        elif self.size is 152:
-            model = torchvision.models.resnet152(pretrained=self.pretrained)
         else:
-            KeyError("wrong size defined")
+            raise KeyError("wrong size defined")
         return model
 
     def forward(self, x):
@@ -66,9 +60,46 @@ class ResNet(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.SGD(
-            self.parameters(),
-            lr=self.config["learning_rate"],
-            momentum=self.config["momentum"],
-            weight_decay=self.config["weight_decay"]
+        if self.optim_mode == "ft":  # finetuning
+            pass
+
+        elif self.optim_mode == "fo":  # final output only aka classifier
+            # freeze all parameters
+            for m in self.modules():
+                m.requires_grad_(False)
+            # reinitialize classifier
+            self.network.fc.reset_parameters()
+            self.network.fc.requires_grad_(True)
+
+        elif self.optim_mode == "fe":  # feature extractor
+            filtered_keys = [x for x in self.state_dict().keys() if ('running_mean' not in x and
+                                                                     'running_var' not in x and
+                                                                     'num_batches_tracked' not in x)]
+            for name, params in zip(filtered_keys, self.parameters()):
+                if 'layer4' not in name:
+                    params.requires_grad = False
+
+            self.network.fc.reset_parameters()
+            self.network.fc.requires_grad_(True)
+
+        else:
+            raise NotImplementedError("available modes: ft, fo, fe")
+
+        optimizer = torch.optim.SGD(
+                self.parameters(),
+                lr=self.config["learning_rate"],
+                momentum=self.config["momentum"],
+                weight_decay=self.config["weight_decay"]
         )
+
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
+        return [optimizer], [scheduler]
+
+    def collect_filters(self):
+        counter = 0
+        for name, val in self.state_dict().items():
+            if 'conv' in name and 'layer3' in name:
+                counter += 1
+                print(counter, "\t", name, "\t", val.size())
+
