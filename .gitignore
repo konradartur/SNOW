@@ -2,9 +2,7 @@
 /report/**
 !/report/report.tex
 !/report/report.pdf
-!/report/SNOW.png
-!/report/accs.png
-!/report/accs_old.png
+!/report/*.png
 !/report/results.py
 
 # Byte-compiled / optimized / DLL files

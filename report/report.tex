@@ -99,10 +99,19 @@
 
     Food-101 dataset contains 11000 photographs of 101 categories of meals like: hot dog, risotto etc.
     There are 75750 images in train dataset and 25250 ones in the test dataset.
+    Unfortunately we do not have results of training on this dataset because of lack of time and computational resources.
 
     For each dataset we perform normalization and resize to $224\times224$.
 
     \subsection{Transfer learning}
+
+    On~\ref{fig:valacc_tl} we present validation accuracy during training of three TL methods mentioned earlier.
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{valacc}
+        \caption{Accuracy at test set of Transfer learning methods}
+        \label{fig:valacc_tl}
+    \end{figure}
 
     \subsection{SNOW}
 
@@ -128,11 +137,11 @@
 
     \begin{table}
         \centering
-        \begin{tabular}{|c|c|c|c|c|c|}
+        \begin{tabular}{|c|c|c|c|c|}
             \hline
-            \thead{Dataset}          & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} & \thead{Food-101} \\
+            \thead{Dataset}          & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} \\
             \hline
-            Max accuracy on test set & $10.59\%$            & $12.70\%$          & $30.53\%$     & $1.38\%$          & ???            \\
+            Max accuracy on test set & $10.59\%$      & $12.70\%$    & $30.53\%$   & $1.38\%$      \\
             \hline
         \end{tabular}
         \caption{SNOW results (last running)}
@@ -164,11 +173,11 @@
 
     \begin{table}
         \centering
-        \begin{tabular}{|c|c|c|c|c|c|}
+        \begin{tabular}{|c|c|c|c|c|}
             \hline
-            \thead{Dataset}          & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} & \thead{Food-101} \\
+            \thead{Dataset} & \thead{Action} & \thead{Cars} & \thead{DTD} & \thead{Birds} \\
             \hline
-            SNOW & $217.09$            & $62.86$          & $214.04$     & $218.89$          & ???            \\
+            SNOW            & $217.09$       & $62.86$      & $214.04$    & $218.89$      \\
             \hline
         \end{tabular}
         \caption{Throughput (images per second)}
@@ -182,9 +191,59 @@
 
     \subsection{Visualization of filters}
 
+    We have done visualization of $3x7x7$ filters of models trained on each of the datasets.
+    Plots (\ref{fig:filters_action}, \ref{fig:filters_birds}, \ref{fig:filters_cars} and \ref{fig:filters_dtd}) contain delta model's filters of initial convolutional layer in the first row and source model's ones (eight of highest weigght in channel pooling layer).
 
+    We see that the source model's filters vary more than those from the delta models.
+    This could mean filters in well-trained model are more specialized.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{action}
+        \caption{Visualisation of filters trained on Action dataset}
+        \label{fig:filters_action}
+    \end{figure}
+
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{birds}
+        \caption{Visualisation of filters trained on Birds dataset}
+        \label{fig:filters_birds}
+    \end{figure}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{cars}
+        \caption{Visualisation of filters trained on Action dataset}
+        \label{fig:filters_cars}
+    \end{figure}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{dtd}
+        \caption{Visualisation of filters trained on DTD dataset}
+        \label{fig:filters_dtd}
+    \end{figure}
 
     \section{Conslusions}
+
+    Unfortunately we did not manage to reproduce results of authors of \cite{paper}.
+    Probably it was a hard task because of no code published by authors and lack of the details in paper.
+    It was hard to decide how densely channel pooling operation should be placed.
+    We placed it after each convolutional layer in the model.
+    We have sent emails to the authors to get more details, but we have not got any responses.
+    The SNOW approach did not learn as quickly as transfer learning approaches, but it is still faster than learning from scratch.
+    We did not manage to perform training on Food-101 dataset because of technical issues (we were unable to parallelize dataloader because of weird exception) and lack of time.
+    The computational machine which belong to Robotics and Artificial Intelligence Students' Association of Jagiellonian University was not so fast as one used by authors of the paper.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{exception}
+        \caption{Exception which was showing up randomly after several epochs of training with paraller data loaders}
+        \label{fig:exception}
+    \end{figure}
+
 
     \begin{thebibliography}{99}
         \bibitem{paper} \href{https://openreview.net/pdf?id=rJxtgJBKDr}{https://openreview.net/pdf?id=rJxtgJBKDr} \\
