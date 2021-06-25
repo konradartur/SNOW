@@ -1,13 +1,15 @@
+from tqdm import tqdm
 from torchvision.models.resnet import resnet50
 from datasets.car import get_cars
-from datasets import get_cifar100
-import torchvision
+from datasets.birds import get_birds
+from datasets.action import get_action
+from datasets.dtd import get_dtd
+from datasets.food import get_food
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
-
+import time
 from models import resnet50_delta
 
 
@@ -79,13 +81,6 @@ def iterdict(d):
             print(k, ":", v.shape)
 
 
-# chp = ChannelPool(16, 2)
-
-# A = torch.rand((64, 16, 8, 8))
-# res = chp(A)
-# concated = torch.cat((res, A), dim=1)
-from tqdm import tqdm
-
 
 def train_loop(dataloader, model, loss_fn, optimizer, device):
     size = len(dataloader.dataset)
@@ -122,27 +117,48 @@ def test_loop(dataloader, model, loss_fn, device):
     test_loss /= size
     correct /= size
     print(f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    return 100 * correct
 
+import numpy as np
 
 if __name__ == "__main__":
-    device = "cuda"
-    model = Snow(8, 8, 196, variance=0.001).to(device)
-    train_dataset, test_dataset = get_cars(resize=224)
-    batch_size = 32
-    print("Preping dataloader")
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
-    print("Dataset loaded")
-    print("Model created")
-    learning_rate = 1
-    momentum = 0.9
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=0.0001)
-    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-    epochs = 200
-    for t in range(epochs):
-        print(f"Epoch {t + 1}\n-------------------------------")
-        train_loop(train_dataloader, model, loss_fn, optimizer, device)
-        scheduler.step()
-        test_loop(test_dataloader, model, loss_fn, device)
-    print("Done!")
+    device = "cuda:1"
+    dataset_names = ["food"] #["dtd", "action", "birds", "cars"]#, "food"]
+    dataset_classes = [101] #[47, 40, 200, 196]#, 101]
+    dataset_load_function = [get_food] #[get_dtd, get_action, get_birds, get_cars]#, get_food]
+    for i in range(len(dataset_names)):
+        if device != "cpu":
+            torch.cuda.empty_cache()
+        model = Snow(8, 8, dataset_classes[i], variance=0.001).to(device)
+#         print("Model created")
+#         train_dataset, test_dataset = dataset_load_function[i](resize=224)
+#         print(f"Dataset {dataset_names[i]} loaded")
+#         batch_size = 64
+#         print("Preparing dataloader")
+#         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+#         test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+#         learning_rate = 1
+#         momentum = 0.9
+#         loss_fn = nn.CrossEntropyLoss()
+#         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=0.0001)
+#         scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+#         epochs = 50
+#         test_time = []
+#         accuracies = []
+#         for t in range(epochs):
+#             print(f"Epoch {t + 1}\n-------------------------------")
+#             train_loop(train_dataloader, model, loss_fn, optimizer, device)
+#             scheduler.step()
+#             start_test = time.time()
+#             acc = test_loop(test_dataloader, model, loss_fn, device)
+#             end_test = time.time()
+#             if len(accuracies)==0 or acc > max(accuracies):
+#                 torch.save(model.state_dict(), f"SNOW_{dataset_names[i]}.pth")
+#             accuracies.append(acc)
+#             test_time.append(end_test-start_test)
+#         print("Done!")
+#         print(f"Mean evaluation time: {np.array(test_time).mean()}")
+#         with open(f"SNOW_{dataset_names[i]}.txt", "w") as file:
+#             file.write(f"{str(accuracies)}\n")
+#             file.write(f"{str(test_time)}\n")
+#         del model

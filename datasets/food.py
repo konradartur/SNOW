@@ -40,9 +40,9 @@ class Food(Dataset):
                 data = json.load(file)
         else:
             raise ValueError("Invalid split value")
-        label_list = list(data.keys())
+        self.label_list = list(data.keys())
         self.paths = [path + ".jpg" for paths in data.values() for path in paths]
-        self.labels = [label_list.index(label) for label, paths in data.items() for _ in paths]
+        self.labels = [self.label_list.index(label) for label, paths in data.items() for _ in paths]
         # self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
         # Too big dataset to load whole into memory :(
 
@@ -64,5 +64,6 @@ class Food(Dataset):
 
 
 if __name__ == '__main__':
-    ds = get_food()[0]
-    print_dataset_mean_std(ds)
+    ds, ds2 = get_food()
+    print(ds.label_list)
+    # print_dataset_mean_std(ds)
