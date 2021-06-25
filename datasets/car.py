@@ -15,8 +15,8 @@ def get_cars(*, resize=None, **kwargs):
     mean = [0.4707, 0.4601, 0.4550]
     std = [0.2667, 0.2658, 0.2706]
 
-    # dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "car")
-    dir_path = os.path.join(os.environ["DATA_DIR"], "car")
+    # dir_path = os.path.join("data", "car")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "car")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -41,7 +41,7 @@ class Car(Dataset):
         else:
             test = 1
         self.paths = [x[0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
-        self.labels = [x[5][0][0] for x in data['annotations'][0] if x[-1][0][0] == test]
+        self.labels = [x[5][0][0] - 1 for x in data['annotations'][0] if x[-1][0][0] == test]
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):

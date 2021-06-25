@@ -12,6 +12,7 @@ def get_food(*, resize=None, **kwargs):
     mean = [0.5450, 0.4435, 0.3436]
     std = [0.2335, 0.2443, 0.2424]
 
+    # dir_path = os.path.join("data", "food")
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "food")
     dir_path = os.path.join(os.environ["DATA_DIR"], "food")
 

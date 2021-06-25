@@ -1,4 +1,9 @@
 /data/**
+/report/**
+!/report/report.tex
+!/report/report.pdf
+!/report/*.png
+!/report/results.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -14,8 +14,8 @@ def get_birds(*, augment=True, resize=None, **kwargs):
     mean = [0.48592031, 0.49923815, 0.43139376]
     std = [0.05136569, 0.04910943, 0.06800005]
 
-    # dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "birds")
-    dir_path = os.path.join(os.environ["DATA_DIR"], "cub_birds")
+    # dir_path = os.path.join("data", "birds")
+    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "birds")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
     # if we augment and resize we would like to put in train_transforms RandomResizedCrop, not just Resize
@@ -68,8 +68,8 @@ class CubBirds(Dataset):
         return img
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
         img = self.data[idx]
+        label = self.labels[idx]
         if self.transforms:
             img = self.transforms(img)
         return img, label
