@@ -5,8 +5,8 @@ experiment_class: FinetuneResnet
 dataset: birds
 resize: 224
 
-n_epochs: 1
-batch_size: 128
+n_epochs: 180
+batch_size: 64
 
 optim_name: sgd
 learning_rate: 0.05

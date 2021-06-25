@@ -13,7 +13,8 @@ def get_dtd(*, resize=None, **kwargs):
     mean = [0.5273, 0.4702, 0.4253]
     std = [0.1804, 0.1814, 0.1779]
 
-    dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "dtd")
+    # dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "dtd")
+    dir_path = os.path.join(os.environ["DATA_DIR"], "dtd")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -41,7 +42,7 @@ class DTD(Dataset):
             raise ValueError("Invalid split value")
         split = data['images'][0][0][2][0]
         self.paths = np.concatenate(data['images'][0][0][1][0][np.isin(split, split_id)])
-        self.labels = data['images'][0][0][3][0][np.isin(split, split_id)] - 1
+        self.labels = data['images'][0][0][3][0][np.isin(split, split_id)]
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
 
     def __loadimg__(self, idx):

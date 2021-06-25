@@ -13,6 +13,7 @@ def get_food(*, resize=None, **kwargs):
     std = [0.2335, 0.2443, 0.2424]
 
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "food")
+    dir_path = os.path.join(os.environ["DATA_DIR"], "food")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
