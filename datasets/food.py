@@ -12,7 +12,9 @@ def get_food(*, resize=None, **kwargs):
     mean = [0.5450, 0.4435, 0.3436]
     std = [0.2335, 0.2443, 0.2424]
 
+    # dir_path = os.path.join("data", "food")
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "food")
+
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -64,6 +66,5 @@ class Food(Dataset):
 
 
 if __name__ == '__main__':
-    ds, ds2 = get_food()
-    print(ds.label_list)
-    # print_dataset_mean_std(ds)
+    ds = get_food()[0]
+    print_dataset_mean_std(ds)

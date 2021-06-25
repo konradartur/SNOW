@@ -15,6 +15,7 @@ def get_cars(*, resize=None, **kwargs):
     mean = [0.4707, 0.4601, 0.4550]
     std = [0.2667, 0.2658, 0.2706]
 
+    # dir_path = os.path.join("data", "car")
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "car")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]

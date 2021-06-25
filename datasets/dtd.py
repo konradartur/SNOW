@@ -13,6 +13,7 @@ def get_dtd(*, resize=None, **kwargs):
     mean = [0.5273, 0.4702, 0.4253]
     std = [0.1804, 0.1814, 0.1779]
 
+    # dir_path = os.path.join("data", "dtd")
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "dtd")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]

@@ -11,6 +11,7 @@ def get_action(*, resize=None, **kwargs):
     mean = [0.4670, 0.4409, 0.4021]
     std = [0.2465, 0.2389, 0.2429]
 
+    # dir_path = os.path.join('data', 'action')
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "action")
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
@@ -43,7 +44,7 @@ class Action(Dataset):
 
         filter = data[:, 2] == split
         self.paths = data[:, 0][filter]
-        # %%
+
         labels_list = np.unique(data[:, 1]).tolist()
         self.labels = np.array([labels_list.index(x) - 1 for x in data[:, 1][filter]])
         self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
