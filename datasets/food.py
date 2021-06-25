@@ -14,7 +14,7 @@ def get_food(*, resize=None, **kwargs):
 
     # dir_path = os.path.join("data", "food")
     dir_path = os.path.join("/", "storage", "ssd_storage0", "data", "food")
-    dir_path = os.path.join(os.environ["DATA_DIR"], "food")
+
 
     basic_transforms = [ToTensor(), Normalize(mean, std)]
 
@@ -42,9 +42,9 @@ class Food(Dataset):
                 data = json.load(file)
         else:
             raise ValueError("Invalid split value")
-        label_list = list(data.keys())
+        self.label_list = list(data.keys())
         self.paths = [path + ".jpg" for paths in data.values() for path in paths]
-        self.labels = [label_list.index(label) for label, paths in data.items() for _ in paths]
+        self.labels = [self.label_list.index(label) for label, paths in data.items() for _ in paths]
         # self.data = [self.__loadimg__(i) for i in range(len(self.labels))]
         # Too big dataset to load whole into memory :(
 
